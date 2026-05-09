@@ -39,12 +39,12 @@ func main() {
 	rows, err := db.Query(`
 		SELECT
 			sensor_id,
-			AVG(CASE WHEN recorded_at >= NOW() - INTERVAL 5 MINUTE THEN value END) -
-			AVG(CASE WHEN recorded_at < NOW() - INTERVAL 5 MINUTE
-				AND recorded_at >= NOW() - INTERVAL 10 MINUTE THEN value END) AS diff,
-			AVG(CASE WHEN recorded_at >= NOW() - INTERVAL 5 MINUTE THEN value END) AS current_value
+			AVG(CASE WHEN recorded_at >= NOW() - INTERVAL 1 MINUTE THEN value END) -
+			AVG(CASE WHEN recorded_at < NOW() - INTERVAL 1 MINUTE
+				AND recorded_at >= NOW() - INTERVAL 5 MINUTE THEN value END) AS diff,
+			AVG(CASE WHEN recorded_at >= NOW() - INTERVAL 1 MINUTE THEN value END) AS current_value
 		FROM smells
-		WHERE recorded_at >= NOW() - INTERVAL 10 MINUTE
+		WHERE recorded_at >= NOW() - INTERVAL 5 MINUTE
 		GROUP BY sensor_id
 		HAVING diff > 0.001
 	`)
