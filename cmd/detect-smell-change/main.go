@@ -46,7 +46,7 @@ func main() {
 		FROM smells
 		WHERE recorded_at >= NOW() - INTERVAL 5 MINUTE
 		GROUP BY sensor_id
-		HAVING diff > 0.001
+		HAVING diff > 0.01
 	`)
 	if err != nil {
 		log.Fatal("failed to query:", err)
