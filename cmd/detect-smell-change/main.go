@@ -41,7 +41,8 @@ func main() {
 			sensor_id,
 			AVG(CASE WHEN recorded_at >= NOW() - INTERVAL 5 MINUTE THEN value END) -
 			AVG(CASE WHEN recorded_at < NOW() - INTERVAL 5 MINUTE
-				AND recorded_at >= NOW() - INTERVAL 10 MINUTE THEN value END) AS diff
+				AND recorded_at >= NOW() - INTERVAL 10 MINUTE THEN value END) AS diff,
+			AVG(CASE WHEN recorded_at >= NOW() - INTERVAL 5 MINUTE THEN value END) AS current_value
 		FROM smells
 		WHERE recorded_at >= NOW() - INTERVAL 10 MINUTE
 		GROUP BY sensor_id
@@ -52,15 +53,17 @@ func main() {
 	}
 	defer rows.Close()
 
+	jst := time.FixedZone("JST", 9*60*60)
+
 	for rows.Next() {
 		var sensorID string
-		var diff float64
-		if err := rows.Scan(&sensorID, &diff); err != nil {
+		var diff, currentValue float64
+		if err := rows.Scan(&sensorID, &diff, &currentValue); err != nil {
 			log.Fatal(err)
 		}
 
-		now := time.Now().Format("2006-01-02 15:04:05")
-		msg := fmt.Sprintf("センサーの値の変化を検知しました。猫がトイレをした可能性があります。\nsensor_id: %s\ndiff: %.6f\n時刻: %s", sensorID, diff, now)
+		now := time.Now().In(jst).Format("2006-01-02 15:04:05")
+		msg := fmt.Sprintf("センサーの値の変化を検知しました。猫がトイレをした可能性があります。\nsensor_id: %s\ndiff: %.6f\ncurrent_value: %.6f\n時刻: %s (JST)", sensorID, diff, currentValue, now)
 		log.Println(msg)
 
 		body, _ := json.Marshal(map[string]string{"text": msg})
