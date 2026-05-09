@@ -62,6 +62,20 @@ func main() {
 			log.Fatal(err)
 		}
 
+		// 5分以内に通知済みならスキップ
+		var count int
+		if err := db.QueryRow(`
+			SELECT COUNT(*) FROM smell_notifications
+			WHERE sensor_id = ? AND notified_at >= NOW() - INTERVAL 5 MINUTE
+		`, sensorID).Scan(&count); err != nil {
+			log.Printf("failed to check cooldown: %v", err)
+			continue
+		}
+		if count > 0 {
+			log.Printf("skipping %s (cooldown)", sensorID)
+			continue
+		}
+
 		now := time.Now().In(jst).Format("2006-01-02 15:04:05")
 		msg := fmt.Sprintf("センサーの値の変化を検知しました。猫がトイレをした可能性があります。\nsensor_id: %s\ndiff: %.6f\ncurrent_value: %.6f\n時刻: %s (JST)", sensorID, diff, currentValue, now)
 		log.Println(msg)
@@ -73,5 +87,13 @@ func main() {
 			continue
 		}
 		resp.Body.Close()
+
+		// 通知時刻を記録
+		if _, err := db.Exec(`
+			INSERT INTO smell_notifications (sensor_id, notified_at) VALUES (?, NOW())
+			ON DUPLICATE KEY UPDATE notified_at = NOW()
+		`, sensorID); err != nil {
+			log.Printf("failed to record notification: %v", err)
+		}
 	}
 }
