@@ -91,7 +91,6 @@ func main() {
 		// 通知時刻を記録
 		if _, err := db.Exec(`
 			INSERT INTO smell_notifications (sensor_id, notified_at) VALUES (?, NOW())
-			ON DUPLICATE KEY UPDATE notified_at = NOW()
 		`, sensorID); err != nil {
 			log.Printf("failed to record notification: %v", err)
 		}
