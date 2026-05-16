@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 	"os"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
@@ -29,7 +30,14 @@ func main() {
 		log.Fatal("cannot connect to db:", err)
 	}
 
-	// 直近1分の平均RSSIがthreshold以上のlocationを取得
+	// 1分間、10秒ごとに記録（cronjobが毎分起動するため）
+	for range 6 {
+		record(db)
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func record(db *sql.DB) {
 	rows, err := db.Query(`
 		SELECT location, AVG(rssi) AS avg_rssi
 		FROM ble_rssi
@@ -40,7 +48,8 @@ func main() {
 		LIMIT 1
 	`, rssiThreshold)
 	if err != nil {
-		log.Fatal("failed to query:", err)
+		log.Printf("failed to query: %v", err)
+		return
 	}
 	defer rows.Close()
 
@@ -57,6 +66,6 @@ func main() {
 	}
 
 	if _, err := db.Exec("INSERT INTO presence_logs (location) VALUES (?)", location); err != nil {
-		log.Fatal("failed to insert:", err)
+		log.Printf("failed to insert: %v", err)
 	}
 }
