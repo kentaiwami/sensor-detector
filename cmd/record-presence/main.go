@@ -41,7 +41,7 @@ func record(db *sql.DB) {
 	rows, err := db.Query(`
 		SELECT location, AVG(rssi) AS avg_rssi
 		FROM ble_rssi
-		WHERE recorded_at >= NOW() - INTERVAL 1 MINUTE
+		WHERE recorded_at >= NOW() - INTERVAL 30 SECOND
 		GROUP BY location
 		HAVING avg_rssi >= ?
 		ORDER BY avg_rssi DESC
