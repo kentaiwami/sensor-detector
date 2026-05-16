@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const rssiThreshold = -68
+const rssiThreshold = -60
 
 func main() {
 	godotenv.Load()
