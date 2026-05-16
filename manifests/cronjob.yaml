@@ -27,8 +27,13 @@ spec:
                     secretKeyRef:
                       name: sensor-detector-secret
                       key: database-url
-                - name: SLACK_WEBHOOK_URL
+                - name: SLACK_BOT_TOKEN
                   valueFrom:
                     secretKeyRef:
                       name: sensor-detector-secret
-                      key: slack-webhook-url
+                      key: slack-bot-token
+                - name: SLACK_CHANNEL_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: sensor-detector-secret
+                      key: slack-channel-id

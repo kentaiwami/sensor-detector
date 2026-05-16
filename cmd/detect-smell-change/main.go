@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -21,9 +22,13 @@ func main() {
 	if dsn == "" {
 		log.Fatal("DATABASE_URL is required")
 	}
-	webhookURL := os.Getenv("SLACK_WEBHOOK_URL")
-	if webhookURL == "" {
-		log.Fatal("SLACK_WEBHOOK_URL is required")
+	slackToken := os.Getenv("SLACK_BOT_TOKEN")
+	if slackToken == "" {
+		log.Fatal("SLACK_BOT_TOKEN is required")
+	}
+	slackChannel := os.Getenv("SLACK_CHANNEL_ID")
+	if slackChannel == "" {
+		log.Fatal("SLACK_CHANNEL_ID is required")
 	}
 
 	db, err := sql.Open("mysql", dsn)
@@ -80,18 +85,32 @@ func main() {
 		msg := fmt.Sprintf("センサーの値の変化を検知しました。猫がトイレをした可能性があります。\nsensor_id: %s\ndiff: %.6f\ncurrent_value: %.6f\n時刻: %s (JST)", sensorID, diff, currentValue, now)
 		log.Println(msg)
 
-		body, _ := json.Marshal(map[string]string{"text": msg})
-		resp, err := http.Post(webhookURL, "application/json", bytes.NewBuffer(body))
+		body, _ := json.Marshal(map[string]string{"channel": slackChannel, "text": msg})
+		req, _ := http.NewRequest(http.MethodPost, "https://slack.com/api/chat.postMessage", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+slackToken)
+		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			log.Printf("failed to send slack notification: %v", err)
 			continue
 		}
+		var slackResp struct {
+			OK bool   `json:"ok"`
+			TS string `json:"ts"`
+		}
+		respBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
+		json.Unmarshal(respBody, &slackResp)
+
+		var slackTS *string
+		if slackResp.OK && slackResp.TS != "" {
+			slackTS = &slackResp.TS
+		}
 
 		// 通知時刻を記録
 		if _, err := db.Exec(`
-			INSERT INTO smell_notifications (sensor_id, notified_at) VALUES (?, NOW())
-		`, sensorID); err != nil {
+			INSERT INTO smell_notifications (sensor_id, slack_ts, notified_at) VALUES (?, ?, NOW())
+		`, sensorID, slackTS); err != nil {
 			log.Printf("failed to record notification: %v", err)
 		}
 	}
