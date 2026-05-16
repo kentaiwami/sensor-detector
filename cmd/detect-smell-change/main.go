@@ -101,6 +101,7 @@ func main() {
 		respBody, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		json.Unmarshal(respBody, &slackResp)
+		log.Printf("slack response: %s", string(respBody))
 
 		var slackTS *string
 		if slackResp.OK && slackResp.TS != "" {
