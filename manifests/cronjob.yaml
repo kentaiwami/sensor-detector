@@ -1,47 +1,6 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: detect-smell-change
-  namespace: sensor-detector
-spec:
-  schedule: "* * * * *"  # 毎分
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          containers:
-            - name: detect-smell-change
-              image: __REGISTRY_HOST__:5000/sensor-detector:__IMAGE_TAG__
-              command: ["./detect-smell-change"]
-              resources:
-                requests:
-                  cpu: 50m
-                  memory: 32Mi
-                limits:
-                  cpu: 200m
-                  memory: 64Mi
-              env:
-                - name: DATABASE_URL
-                  valueFrom:
-                    secretKeyRef:
-                      name: sensor-detector-secret
-                      key: database-url
-                - name: SLACK_BOT_TOKEN
-                  valueFrom:
-                    secretKeyRef:
-                      name: sensor-detector-secret
-                      key: slack-bot-token
-                - name: SLACK_CHANNEL_ID
-                  valueFrom:
-                    secretKeyRef:
-                      name: sensor-detector-secret
-                      key: slack-channel-id
-
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
   name: record-presence
   namespace: sensor-detector
 spec:
